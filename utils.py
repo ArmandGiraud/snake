@@ -1,4 +1,4 @@
-
+import time
 import math
 import random
 from IPython.display import clear_output
@@ -58,11 +58,11 @@ def initialize_snake(grille, sizes):
 input_to_dir = {
     4 :"left",
     6 :"right",
-    8 : "up",
-    5:"down"
+    8 :"up",
+    5 :"down"
 }
 
-def run(grille_intialized):
+def run(grille_intialized, bot_mode = False, bot = None):
     
     from pprint import pprint
     last_head = find_head(grille_intialized)
@@ -75,7 +75,7 @@ def run(grille_intialized):
     while True:           
         pprint(grille)
         current_head = find_head(grille)
-        user_input = move()
+        user_input = move(bot_mode, bot) #
         last_direction = define_movement(last_head, current_head)
         print("last_direction", last_direction)
         if check_input(last_direction, user_input) == 1:
@@ -233,13 +233,22 @@ def spawn_food(grille, snake):
             grille.set_value(food_spawn, 4)
             return grille
 
-def move():
-    # 1 find head
-    # 2 find closest body
-    user_input = int(input('Move:'))
+def move(bot_mode = False, bot = None):
+    if bot_mode:
+        # time.sleep(1.2) add to see the bot move
+        user_input = bot.compute()
+    else:
+        user_input = int(input('Move:'))
     return user_input
 
 class Snake():
-    def __init__(self, sizes):
-        grille = build_grille(sizes)
-        run(initialize_snake(grille, sizes))
+    def __init__(self, sizes, bot = None):
+        self.bot = bot
+        self.sizes = sizes
+    
+    def play(self):
+        grille = build_grille(self.sizes)
+        bot_mode = False
+        if self.bot:
+            bot_mode = True
+        return run(initialize_snake(grille, self.sizes), bot_mode, self.bot)
