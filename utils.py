@@ -2,7 +2,7 @@ import time
 import math
 import random
 from IPython.display import clear_output
-
+import copy
 
 class Grille(list):
     def __init__(self):
@@ -65,6 +65,10 @@ input_to_dir = {
 def run(grille_intialized, bot_mode = False, bot = None):
     
     from pprint import pprint
+    history = {}
+    history["snake"] = []
+    history["grille"] = []
+
     last_head = find_head(grille_intialized)
     last_head = (last_head[0], last_head[1] - 1)
     grille = grille_intialized
@@ -72,12 +76,16 @@ def run(grille_intialized, bot_mode = False, bot = None):
     did_eat = True
     grille = spawn_food(grille, snake)
     score = 0
-    while True:           
-        pprint(grille)
+    while True:
+        history["snake"].append(snake)
+        g = copy.deepcopy(grille)
+        history["grille"].append(g)
+
+        #pprint(grille)
         current_head = find_head(grille)
         user_input = move(bot_mode, bot) #
         last_direction = define_movement(last_head, current_head)
-        print("last_direction", last_direction)
+        #print("last_direction", last_direction)
         if check_input(last_direction, user_input) == 1:
             user_input = "continue"
             # last direction does not change
@@ -94,22 +102,25 @@ def run(grille_intialized, bot_mode = False, bot = None):
             elif user_input == 5:
                 last_direction = "down"
             else:
-                print("wrong input")
+                #print("wrong input")
                 continue
 
-        print("direction", last_direction)
-        print("user_input", user_input)
+        #print("direction", last_direction)
+        #print("user_input", user_input)
         grille, snake, score = continuing(last_direction,
                                           snake,
                                           grille,
                                           score)
         if not grille:
-            pprint(grille)
-            print("crash: Final Score is {}".format(score))
-            return score
+
+            #pprint(grille)
+            #print("crash: Final Score is {}".format(score))
+            
+            yield score, g, "yes"
         last_head = current_head
-        clear_output()
-        print("Score : {}".format(score))
+        #clear_output()
+        #print("Score : {}".format(score))
+        yield score, g, "no"
 
 def initial_snake(high):
     # (x, y)
@@ -135,24 +146,24 @@ def define_movement(last_head, current_head):
 
 def check_input(last_direction, user_input):
     if user_input not in [4,5,6,8,9]:
-        print("impossible")
+        #print("impossible")
         return 1
     
     user_input = input_to_dir[user_input]
     if last_direction == user_input:
-        print("impossible")
+        #print("impossible")
         return 1
     elif last_direction == "left" and user_input == "right":
-        print("impossible")
+        #print("impossible")
         return 1
     elif last_direction == "right" and user_input == "left":
-        print("impossible")
+        #print("impossible")
         return 1
     elif last_direction == "up" and user_input == "down":
-        print("impossible")
+        #print("impossible")
         return 1
     elif last_direction == "down" and user_input == "up":
-        print("impossible")
+        #print("impossible")
         return 1
     else:
         #good input
@@ -170,20 +181,17 @@ def continuing(last_direction, snake, grille, score):
     if grille.get_coords(new_head) == 4:
         did_eat = True
         
-    print(snake[-1])
-    print(new_head)
     grille.set_value(new_head, 3) # position new head
     grille.set_value(snake[-1], 2) # replace old head with body
     
     if did_eat:
-        print("eating, generating new food")
-        grille = spawn_food(grille, snake)
-        print("implement eating")
+        pass
     else:
         grille.set_value(snake[0], 0) # replace queue of snake by 0
     # 2 modify snake
     def shift(l, n):
         return l[n:] + l[:n] # shift list to left
+
     if did_eat:
         queue = snake[0]
         snake = [queue] + shift(snake, 1)
@@ -191,8 +199,10 @@ def continuing(last_direction, snake, grille, score):
     else:
         snake = shift(snake, 1)
         snake[-1] = new_head
+    
     if did_eat:
-        score += 10
+        score += 1
+        grille = spawn_food(grille, snake)
     return grille, snake, score
 
 
@@ -247,8 +257,19 @@ class Snake():
         self.sizes = sizes
     
     def play(self):
-        grille = build_grille(self.sizes)
         bot_mode = False
         if self.bot:
             bot_mode = True
-        return run(initialize_snake(grille, self.sizes), bot_mode, self.bot)
+        for i in run(self.initial_grille, bot_mode, self.bot):
+            yield i
+            if i[2] == "yes":
+                break
+
+    
+    def reset(self):
+        grille = build_grille(self.sizes)
+        self.initial_grille = initialize_snake(grille, self.sizes)
+        initial_grille = copy.deepcopy(self.initial_grille)
+        return initial_grille
+
+
