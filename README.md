@@ -1,10 +1,12 @@
-# Snake pyhon :snake:
+# Snake
 ---
 - Pure Python Snake
 - Wall version only for now
 - No external lib beyond numpy/cupy
 
-### Play in jupyter snake_python:
+-- reward:
+  - 10 grab a food piece
+  - 1 did not crash
 
 ## Player Mode
 ```python
@@ -24,3 +26,9 @@ python snake_rl.py
 ```bash
 python snake_rl.py -d
 ```
+
+
+### Coming soon
+- pytorch version with GPU support
+- pygames interface
+- new RL algos
