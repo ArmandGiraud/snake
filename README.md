@@ -32,3 +32,6 @@ python snake_rl.py -d
 - pytorch version with GPU support
 - pygames interface
 - new RL algos
+
+----
+Simple Grid format:
