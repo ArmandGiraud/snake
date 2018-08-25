@@ -1,4 +1,4 @@
-# Snake
+# Snake pyhon :snake:
 ---
 - Pure Python Snake
 - Wall version only for now
