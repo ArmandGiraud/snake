@@ -6,6 +6,8 @@ import os
 import numpy as np
 from chainer import cuda
 import cupy as cp
+
+from sklearn.preprocessing import scale
 be = "a"
 #be = cp
 import argparse
@@ -23,10 +25,10 @@ position_to_input = {
     3:8
 }
 
-model_name = "big_net22.p"
+model_name = "normal_reward_diff.p"
 A = 4
-H = 450 # number of hidden layer neurons
-batch_size = 25 # every how many episodes to do a param update?
+H = 250 # number of hidden layer neurons
+batch_size = 10 # every how many episodes to do a param update?
 learning_rate = 1e-4
 gamma = 0.99 # discount factor for reward
 decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
@@ -73,7 +75,7 @@ def discount_rewards(r):
 def preprocess_grille(grille):
     
     grille = np.array(grille)
-    return grille.ravel().astype(np.float)
+    return scale(grille.ravel().astype(np.float))
 
 def policy_forward(x):
     if(len(x.shape)==1):
@@ -126,6 +128,7 @@ episode_number = 1
 last_score = 0
 grille = sn.reset()
 reward_history = []
+reward_long_history = []
 
 while True:
     if args.display:
@@ -151,7 +154,8 @@ while True:
 
     dlogps.append(dlogsoftmax) 
     score, grille, done = next(game)
-    reward = score - last_score
+    reward = score - last_score # reward of current step
+    #reward = score
     reward_sum += reward
     drs.append(reward)
     if render:
@@ -170,7 +174,7 @@ while True:
 
         discounted_epr = discount_rewards(epr)
         discounted_epr -= np.mean(discounted_epr)
-        #discounted_epr /= np.std(discounted_epr)
+        discounted_epr /= np.std(discounted_epr)+ 1e-5
         epdlogp *= discounted_epr
         grad = policy_backward(eph, epdlogp)
         for k in model: grad_buffer[k] += grad[k]
@@ -184,9 +188,10 @@ while True:
 
         running_reward = reward_sum if running_reward is None else running_reward * 0.99 + reward_sum * 0.01
         if episode_number % 10000 == 0:
-            print ('resetting env. episode reward total was %f. running mean: %f' % (reward_sum, running_reward))
-        
-        if episode_number % 1000 == 0 and not args.display: pickle.dump(model, open(model_name, 'wb'))
+            print("long History is &&&&&&&& {} &&&&&&&&".format(np.mean(reward_long_history)))
+            #print ('resetting env. episode reward total was %f. running mean: %f' % (reward_sum, running_reward))
+            reward_long_history = []
+        if episode_number % 5000 == 0 and not args.display: pickle.dump(model, open(model_name, 'wb'))
         reward_sum = 0
         sizes = (8, 6)
         sb = SmartBot()
@@ -194,7 +199,8 @@ while True:
         game = sn.play()
         sn.reset()
         reward_history.append(reward)
+        reward_long_history.append(reward)
 
-        if episode_number % 100 == 0: # Pong has either +1 or -1 reward exactly when game ends.
+        if episode_number % 200 == 0: # Pong has either +1 or -1 reward exactly when game ends.
             print("reward history {}  games: {}".format(episode_number, np.mean(reward_history)))
             reward_history = []

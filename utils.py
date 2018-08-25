@@ -175,10 +175,10 @@ def continuing(last_direction, snake, grille, score):
     # add coords of directions to coord of head to find new head
     did_eat = False
     new_head = add_tuples(snake[-1] ,  dir_to_coord[last_direction])
-    if grille.get_coords(new_head) != 0 and grille.get_coords(new_head) != 4:
+    if grille.get_coords(new_head) != 0 and grille.get_coords(new_head) != 9:
         return None, None, score
     # did eat
-    if grille.get_coords(new_head) == 4:
+    if grille.get_coords(new_head) == 9:
         did_eat = True
         
     grille.set_value(new_head, 3) # position new head
@@ -204,7 +204,7 @@ def continuing(last_direction, snake, grille, score):
         score += 100
         grille = spawn_food(grille, snake)
     else:
-        score+=1
+        score +=1  
     return grille, snake, score
 
 
@@ -242,7 +242,7 @@ def spawn_food(grille, snake):
         c = random.randint(a=1, b= sizes[1] - 2 )
         food_spawn = (r,c)
         if food_spawn not in snake:
-            grille.set_value(food_spawn, 4)
+            grille.set_value(food_spawn, 9)
             return grille
 
 def move(bot_mode = False, bot = None):
