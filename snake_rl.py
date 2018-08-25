@@ -2,6 +2,16 @@ from utils import Snake
 import random
 import pickle
 import numpy as np
+from chainer import cuda
+import cupy as cp
+be = "a"
+#be = cp
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-d", "--display",default = False,
+                   action="store_true", help ="display mode")
+args = parser.parse_args()
 
 
 position_to_input = {
@@ -10,19 +20,22 @@ position_to_input = {
     2:3,
     3:8
 }
+
+model_name = "new_tracking.p"
 A = 4
-H = 200 # number of hidden layer neurons
-batch_size = 10 # every how many episodes to do a param update?
+H = 45 # number of hidden layer neurons
+batch_size = 1000 # every how many episodes to do a param update?
 learning_rate = 1e-4
 gamma = 0.99 # discount factor for reward
 decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
-resume = True # resume from previous checkpoint?
+resume =  True # resume from previous checkpoint?
 render = False
 
 # model initialization
 D = 10 * 8 # input dimensionality: 80x80 grid
+
 if resume:
-    model = pickle.load(open('save.3p', 'rb'))
+    model = pickle.load(open(model_name, 'rb'))
 else:
     model = {}
     model['W1'] = np.random.randn(D, H) / np.sqrt(D) # "Xavier" initialization
@@ -72,10 +85,15 @@ def policy_backward(eph, epdlogp):
     dh = epdlogp.dot(model['W2'].T)
     dh[eph <= 0] = 0 # backpro prelu
   
-
-    dW1 = epx.T.dot(dh) 
+    if(be == cp):
+        dh_gpu = cuda.to_gpu(dh, device=0)
+        epx_gpu = cuda.to_gpu(epx.T, device=0)
+        dW1 = cuda.to_cpu( epx_gpu.dot(dh_gpu) )
+    else:
+        dW1 = epx.T.dot(dh)
     
     return {'W1':dW1, 'W2':dW2}
+
 class SmartBot():
     def __init__(self):
         pass
@@ -98,12 +116,15 @@ game = sn.play()
 xs,hs,dlogps,drs = [],[],[],[]
 running_reward = None
 reward_sum = 0
-episode_number = 0
+episode_number = 1
 last_score = 0
 grille = sn.reset()
-
+reward_history = []
 
 while True:
+    if args.display:
+        if episode_number % 1000 == 0:
+            render = True
     from time import sleep
     from pprint import pprint
     x = preprocess_grille(grille)
@@ -127,7 +148,11 @@ while True:
     reward = score - last_score
     reward_sum += reward
     drs.append(reward)
-
+    if render:
+        pprint(grille)
+        print("score:", score)
+        sleep(1)
+        render = False    
     if done == "yes": # an episode finished
         episode_number += 1
         
@@ -152,17 +177,18 @@ while True:
                 grad_buffer[k] = np.zeros_like(v) # reset batch gradient buffer
 
         running_reward = reward_sum if running_reward is None else running_reward * 0.99 + reward_sum * 0.01
-        if episode_number % 100 == 0:
+        if episode_number % 10000 == 0:
             print ('resetting env. episode reward total was %f. running mean: %f' % (reward_sum, running_reward))
-        if episode_number % 100 == 0: pickle.dump(model, open('save.3p', 'wb'))
-        if episode_number > 1000000:
-            break
+        
+        if episode_number % 1000 == 0 and not args.display: pickle.dump(model, open(model_name, 'wb'))
         reward_sum = 0
         sizes = (8, 6)
         sb = SmartBot()
         sn = Snake(sizes, sb)
         game = sn.play()
         sn.reset()
+        reward_history.append(reward)
 
-        if reward > 10 : # Pong has either +1 or -1 reward exactly when game ends.
-            print ('ep %d: game finished, reward: %f' % (episode_number, reward))
+        if episode_number % 100 == 0: # Pong has either +1 or -1 reward exactly when game ends.
+            print("reward history {}  games: {}".format(episode_number, np.mean(reward_history)))
+            reward_history = []
