@@ -30,7 +30,7 @@ python snake_rl.py -d
 - new RL algos
 
 ----
-## Simple Grid format:
+## :bulb: Simple Grid format:
 
 
 [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],                                                                                                                                                        
@@ -54,3 +54,4 @@ python snake_rl.py -d
  :paperclip: reward:
   - 10 grab a food piece
   - 1 did not crash
+
