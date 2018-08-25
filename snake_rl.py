@@ -1,6 +1,8 @@
 from utils import Snake
 import random
 import pickle
+import os
+
 import numpy as np
 from chainer import cuda
 import cupy as cp
@@ -21,15 +23,19 @@ position_to_input = {
     3:8
 }
 
-model_name = "new_tracking.p"
+model_name = "big_net22.p"
 A = 4
-H = 45 # number of hidden layer neurons
-batch_size = 1000 # every how many episodes to do a param update?
+H = 450 # number of hidden layer neurons
+batch_size = 25 # every how many episodes to do a param update?
 learning_rate = 1e-4
 gamma = 0.99 # discount factor for reward
 decay_rate = 0.99 # decay factor for RMSProp leaky sum of grad^2
-resume =  True # resume from previous checkpoint?
 render = False
+
+if os.path.exists(model_name): # resume from previous checkpoint
+    resume = True
+else:
+    resume = False
 
 # model initialization
 D = 10 * 8 # input dimensionality: 80x80 grid

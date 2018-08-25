@@ -201,7 +201,7 @@ def continuing(last_direction, snake, grille, score):
         snake[-1] = new_head
     
     if did_eat:
-        score += 10
+        score += 100
         grille = spawn_food(grille, snake)
     else:
         score+=1
