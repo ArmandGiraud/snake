@@ -1,5 +1,7 @@
 # Snake
 ---
+
+basic infos :bulb:
 - Pure Python Snake
 - Wall version only for now
 - No external lib beyond numpy/cupy
@@ -30,7 +32,7 @@ python snake_rl.py -d
 - new RL algos
 
 ----
-## :bulb: Simple Grid format:
+## Simple Grid format:
 
 
 [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1],                                                                                                                                                        
