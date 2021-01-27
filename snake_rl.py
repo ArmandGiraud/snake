@@ -5,11 +5,13 @@ import os
 
 import numpy as np
 from chainer import cuda
-import cupy as cp
 
 from sklearn.preprocessing import scale
+from time import sleep
+from pprint import pprint
 be = "a"
 #be = cp
+cp = None
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -110,7 +112,6 @@ class SmartBot():
         return self.action
     
 
-from utils import Snake
 sizes = (8, 6)
 sb = SmartBot()
 sn = Snake(sizes, sb)
@@ -134,8 +135,6 @@ while True:
     if args.display:
         if episode_number % 1000 == 0:
             render = True
-    from time import sleep
-    from pprint import pprint
     x = preprocess_grille(grille)
     probs, h = policy_forward(x)
     u = np.random.uniform()

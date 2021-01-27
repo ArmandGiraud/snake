@@ -3,6 +3,7 @@ import math
 import random
 from IPython.display import clear_output
 import copy
+from pprint import pprint
 
 class Grille(list):
     def __init__(self):
@@ -62,9 +63,8 @@ input_to_dir = {
     5 :"down"
 }
 
-def run(grille_intialized, bot_mode = False, bot = None):
-    
-    from pprint import pprint
+def run(grille_intialized, bot_mode = False, bot = None, n_food=1):
+
     history = {}
     history["snake"] = []
     history["grille"] = []
@@ -74,7 +74,7 @@ def run(grille_intialized, bot_mode = False, bot = None):
     grille = grille_intialized
     snake = initial_snake(grille.get_size()[0]-2)
     did_eat = True
-    grille = spawn_food(grille, snake)
+    grille = spawn_food(grille, snake, n_food=n_food)
     score = 0
     while True:
         history["snake"].append(snake)
@@ -83,27 +83,23 @@ def run(grille_intialized, bot_mode = False, bot = None):
 
         #pprint(grille)
         current_head = find_head(grille)
-        user_input = move(bot_mode, bot) #
+        user_input = move(g, bot_mode, bot) #
+        
         last_direction = define_movement(last_head, current_head)
         #print("last_direction", last_direction)
         if check_input(last_direction, user_input) == 1:
-            user_input = "continue"
+            user_input_corrected = "continue"
             # last direction does not change
         else:
-            if user_input == 9:
-                user_input = "continue"
-                # last_direction does not change
-            elif user_input == 8:
-                last_direction = "up"
-            elif user_input == 6:
-                last_direction = "right"
-            elif user_input == 4:
-                last_direction = "left"
-            elif user_input == 5:
-                last_direction = "down"
-            else:
-                #print("wrong input")
-                continue
+            user_input_corrected = user_input
+        if user_input_corrected == 8:
+            last_direction = "up"
+        if user_input_corrected == 6:
+            last_direction = "right"
+        if user_input_corrected == 4:
+            last_direction = "left"
+        if user_input_corrected == 5:
+            last_direction = "down"
 
         #print("direction", last_direction)
         #print("user_input", user_input)
@@ -112,15 +108,14 @@ def run(grille_intialized, bot_mode = False, bot = None):
                                           grille,
                                           score)
         if not grille:
-
             #pprint(grille)
             #print("crash: Final Score is {}".format(score))
-            
-            yield score, g, "yes"
+            yield score, g, user_input, True
+
         last_head = current_head
         #clear_output()
         #print("Score : {}".format(score))
-        yield score, g, "no"
+        yield score, g, user_input, False
 
 def initial_snake(high):
     # (x, y)
@@ -145,7 +140,7 @@ def define_movement(last_head, current_head):
     return direction
 
 def check_input(last_direction, user_input):
-    if user_input not in [4,5,6,8,9]:
+    if user_input not in [4, 5, 6, 8, 9]:
         #print("impossible")
         return 1
     
@@ -173,12 +168,14 @@ def continuing(last_direction, snake, grille, score):
     # 1: modify grille
     # replace value of new head by a 3
     # add coords of directions to coord of head to find new head
+    score=0
     did_eat = False
     new_head = add_tuples(snake[-1] ,  dir_to_coord[last_direction])
-    if grille.get_coords(new_head) != 0 and grille.get_coords(new_head) != 9:
+    # crash
+    if grille.get_coords(new_head) != 0 and grille.get_coords(new_head) != -9:
         return None, None, score
     # did eat
-    if grille.get_coords(new_head) == 9:
+    if grille.get_coords(new_head) == -9:
         did_eat = True
         
     grille.set_value(new_head, 3) # position new head
@@ -201,10 +198,10 @@ def continuing(last_direction, snake, grille, score):
         snake[-1] = new_head
     
     if did_eat:
-        score += 100
+        score = 1
         grille = spawn_food(grille, snake)
     else:
-        score +=1  
+        score = 0.7  
     return grille, snake, score
 
 
@@ -235,36 +232,40 @@ def find_head(grille):
 #last_head = find_head(grille_intialized)
 #snake = find_snake(grille_intialized)             
 
-def spawn_food(grille, snake):
+def spawn_food(grille, snake, n_food=1):
+    num_food=0
     while True:
         sizes = grille.get_size()
         r = random.randint(a=1, b= sizes[0] - 2 )
         c = random.randint(a=1, b= sizes[1] - 2 )
         food_spawn = (r,c)
         if food_spawn not in snake:
-            grille.set_value(food_spawn, 9)
+            grille.set_value(food_spawn, -9)
+            num_food +=1
+        if num_food == n_food:
             return grille
 
-def move(bot_mode = False, bot = None):
+def move(state, bot_mode = False, bot = None):
     if bot_mode:
         # time.sleep(1.2) add to see the bot move
-        user_input = bot.compute()
+        user_input = bot.compute(state)
     else:
         user_input = int(input('Move:'))
     return user_input
 
 class Snake():
-    def __init__(self, sizes, bot = None):
+    def __init__(self, sizes, bot = None, n_food=1):
         self.bot = bot
         self.sizes = sizes
+        self.n_food = n_food
     
     def play(self):
         bot_mode = False
         if self.bot:
             bot_mode = True
-        for i in run(self.initial_grille, bot_mode, self.bot):
-            yield i
-            if i[2] == "yes":
+        for score, grille, user_input, is_done in run(self.initial_grille, bot_mode, self.bot, self.n_food):
+            yield score, grille, user_input, is_done
+            if is_done:
                 break
 
     
