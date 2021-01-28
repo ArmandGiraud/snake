@@ -201,7 +201,7 @@ def continuing(last_direction, snake, grille, score):
         score = 1
         grille = spawn_food(grille, snake)
     else:
-        score = 0.7  
+        score = 0  
     return grille, snake, score
 
 
